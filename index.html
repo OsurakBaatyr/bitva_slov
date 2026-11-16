@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Битва слов</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg:#14162b; --bg2:#262a66; --panel:#1f2240; --panel2:#2a2e55; --text:#f2f3ff; --muted:#9aa0d0;
+  --p1:#4fc3f7; --p2:#ff8a65; --ok:#66bb6a; --bad:#ef5350; --gold:#ffd54f;
+  --cell:#f5f0e1; --cellText:#2b2b3a;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;min-height:100%;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+html{background:var(--bg)}
+body{display:flex;justify-content:center;background:radial-gradient(900px 520px at 50% -120px,var(--bg2) 0%,var(--bg) 70%) no-repeat,var(--bg)}
+.app{width:100%;max-width:480px;min-height:100%;padding:14px 14px 20px;display:flex;flex-direction:column}
+.screen{display:none;flex-direction:column;flex:1}
+.screen.active{display:flex}
+[hidden]{display:none!important}
+
+/* логотип из плиток */
+.logo{display:flex;flex-direction:column;align-items:center;gap:6px;margin:14px 0 8px}
+.logo .ln{display:flex;gap:5px}
+.logo .t{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;background:var(--cell);color:var(--cellText);box-shadow:0 4px 0 #b9b19a;animation:drop .5s backwards}
+.logo .t.c0{background:var(--p1);color:#06283b;box-shadow:0 4px 0 #2386b3}
+.logo .t.c1{background:var(--p2);color:#3d1205;box-shadow:0 4px 0 #c4553a}
+.logo .t.cg{background:var(--gold);color:#3a2b00;box-shadow:0 4px 0 #b39221}
+@keyframes drop{from{transform:translateY(-24px) rotate(-8deg)}}
+.stars i{font-style:normal;opacity:.22}
+.ver{font-size:12px;font-weight:700;background:var(--panel2);color:var(--gold);border-radius:8px;padding:3px 8px;margin-top:4px;letter-spacing:.5px}
+.sub{text-align:center;color:var(--muted);margin:6px 0 16px;font-size:15px;line-height:1.4}
+
+.btn{border:0;border-radius:14px;padding:14px 16px;font-size:17px;font-weight:600;color:var(--text);background:var(--panel2);cursor:pointer;transition:transform .08s,opacity .2s;font-family:inherit}
+.btn:active{transform:scale(.96)}
+.btn:disabled{opacity:.35}
+.btn:focus-visible,.seg button:focus-visible,.cell:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.btn.primary{background:var(--ok);color:#0e2410}
+.btn.danger{background:var(--bad)}
+.btn.gold{background:var(--gold);color:#3a2b00}
+.btn.ghost{background:transparent;color:var(--muted);border:2px solid var(--panel2)}
+.seg{display:flex;background:var(--panel);border-radius:14px;padding:4px;margin-bottom:14px;gap:4px}
+.seg button{flex:1;border:0;border-radius:11px;padding:11px 6px;font-size:16px;font-weight:700;background:transparent;color:var(--muted);font-family:inherit}
+.seg button.on{background:var(--gold);color:#3a2b00}
+.menu-card{background:var(--panel);border-radius:18px;padding:16px;margin-bottom:14px}
+.menu-card h2{margin:0 0 12px;font-size:17px;color:var(--muted);font-weight:600}
+.daily{background:linear-gradient(135deg,#3b2f7a,#25285a);border:1px solid #4b46a0}
+.daily h2{color:var(--gold)}
+.daily p{margin:0 0 12px;font-size:14px;color:#d8daf7;line-height:1.45}
+.daily .best{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);margin-bottom:12px}
+.daily .best b{color:var(--gold)}
+.daily .btn{width:100%}
+.bot-btn{display:flex;align-items:center;gap:14px;width:100%;text-align:left;margin-bottom:10px;padding:12px 14px}
+.bot-btn:last-child{margin-bottom:0}
+.bot-btn .em{font-size:34px}
+.bot-btn small{display:block;font-weight:400;color:var(--muted);font-size:13px;margin-top:2px}
+.bot-btn .stars{margin-left:auto;color:var(--gold);font-size:14px;white-space:nowrap}
+.rules{font-size:14px;line-height:1.5;color:#d0d3f5;padding-left:18px;margin:0 0 12px}
+.learn{width:100%}
+.foot{text-align:center;color:var(--muted);font-size:12px;opacity:.7;margin-top:4px}
+
+/* game */
+.top{display:flex;gap:10px;align-items:stretch}
+.pl{flex:1;background:var(--panel);border-radius:14px;padding:8px 10px;border:3px solid transparent;transition:border-color .2s,transform .2s;min-width:0}
+.pl .nm{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl .sc{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums}
+.pl.p0 .sc{color:var(--p1)} .pl.p1 .sc{color:var(--p2)}
+.pl.p0.on{border-color:var(--p1);transform:scale(1.03)}
+.pl.p1.on{border-color:var(--p2);transform:scale(1.03)}
+.menu-x{background:var(--panel);border:0;color:var(--muted);border-radius:14px;width:44px;font-size:20px}
+.timer{height:10px;background:var(--panel);border-radius:6px;margin:12px 0 6px;overflow:hidden}
+.timer i{display:block;height:100%;width:100%;background:var(--ok);border-radius:6px;transition:background .3s}
+.tinfo{display:flex;justify-content:space-between;gap:8px;font-size:14px;color:var(--muted)}
+.tinfo b{color:var(--text);font-variant-numeric:tabular-nums}
+.word{margin:10px 0 8px;min-height:58px;background:var(--panel);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;letter-spacing:4px;text-transform:uppercase;padding:6px}
+.word.ph{font-size:16px;font-weight:400;color:var(--muted);letter-spacing:0;text-transform:none}
+.word.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.msg{text-align:center;min-height:22px;font-size:15px;margin-bottom:8px}
+.msg.bad{color:var(--bad)} .msg.ok{color:var(--ok)} .msg.info{color:var(--gold)}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.cell{aspect-ratio:1;max-width:100%;border:0;border-radius:12px;background:var(--cell);color:var(--cellText);font-size:30px;font-weight:800;text-transform:uppercase;box-shadow:0 4px 0 #b9b19a;transition:transform .1s,background .3s,box-shadow .1s;padding:0;font-family:inherit}
+.cell:active{transform:translateY(2px)}
+.cell.c0{background:var(--p1);color:#06283b;box-shadow:0 4px 0 #2386b3}
+.cell.c1{background:var(--p2);color:#3d1205;box-shadow:0 4px 0 #c4553a}
+.cell.sel{background:var(--gold);color:#3a2b00;box-shadow:0 4px 0 #b39221;transform:translateY(-2px)}
+.cell.hint{animation:pulse 1s infinite}
+@keyframes pulse{50%{background:#c5f5c7;transform:scale(1.06)}}
+.cell.used{box-shadow:none;opacity:.28;transform:none}
+.cell.used.o0{background:var(--p1)} .cell.used.o1{background:var(--p2)}
+.cell.pop{animation:pop .35s}
+@keyframes pop{50%{transform:scale(1.15)}}
+.row{display:flex;gap:8px;margin-top:12px}
+.row .btn{flex:1;padding:13px 6px;font-size:16px}
+.log{margin-top:12px;background:var(--panel);border-radius:14px;padding:10px 12px;font-size:14px;max-height:130px;overflow:auto}
+.log div{padding:2px 0}
+.log .w0{color:var(--p1)} .log .w1{color:var(--p2)} .log .pass{color:var(--muted)} .log .lv{color:var(--gold);font-weight:700}
+
+/* result / level */
+.res-title{font-size:30px;text-align:center;margin:24px 0 6px;text-wrap:balance}
+.res-em{font-size:72px;text-align:center;margin-top:10px}
+.res-score{display:flex;gap:10px;margin:16px 0}
+.res-score .pl{text-align:center}
+.res-score small{display:block;color:var(--muted);font-size:13px}
+.wl{font-size:13px;color:#d0d3f5;margin-top:6px;line-height:1.5;word-break:break-word;text-align:left}
+.overlay{position:fixed;inset:0;background:rgba(10,10,25,.78);display:none;align-items:center;justify-content:center;z-index:20;padding:20px}
+.overlay.on{display:flex}
+.dlg{background:var(--panel);border-radius:20px;padding:22px;max-width:360px;width:100%;text-align:center;animation:rise .3s}
+.dlg .big{font-size:56px;margin-bottom:6px}
+.dlg h3{margin:0 0 8px;font-size:22px}
+.dlg p{font-size:16px;margin:0 0 18px;color:#d0d3f5;line-height:1.45}
+.dlg .col{display:flex;flex-direction:column;gap:10px}
+@keyframes rise{from{transform:translateY(20px);opacity:0}}
+.turnbanner{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%) scale(.8);background:var(--panel2);padding:16px 26px;border-radius:18px;font-size:22px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:4;text-align:center}
+.turnbanner.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+/* обучение */
+.tut{position:fixed;inset:0;z-index:15;pointer-events:none;display:none}
+.tut.on{display:block}
+.tut .spot{position:fixed;border-radius:16px;box-shadow:0 0 0 9999px rgba(8,9,22,.78);transition:all .35s ease;border:3px solid var(--gold)}
+.tut .spot.none{border-color:transparent}
+.tut .tip{position:fixed;left:16px;right:16px;margin:0 auto;max-width:440px;background:var(--panel);border:2px solid var(--gold);border-radius:18px;padding:16px;pointer-events:auto;transition:top .35s ease;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.tut .tip .stp{font-size:12px;color:var(--gold);font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px}
+.tut .tip .tx{font-size:16px;line-height:1.45;margin-bottom:12px}
+.tut .tip .tx b{color:var(--gold)}
+.tut .tip .row{margin-top:0}
+.tut .tip .row .btn{padding:11px 6px;font-size:15px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- MENU -->
+  <section class="screen active" id="menu">
+    <div class="logo" aria-label="Битва слов">
+      <div class="ln"><span class="t" style="animation-delay:.00s">Б</span><span class="t c0" style="animation-delay:.05s">И</span><span class="t" style="animation-delay:.10s">Т</span><span class="t c1" style="animation-delay:.15s">В</span><span class="t" style="animation-delay:.20s">А</span></div>
+      <div class="ln"><span class="t cg" style="animation-delay:.30s">С</span><span class="t cg" style="animation-delay:.35s">Л</span><span class="t cg" style="animation-delay:.40s">О</span><span class="t cg" style="animation-delay:.45s">В</span></div>
+      <span class="ver" id="verTag">РЕЖИМ 2.0</span>
+    </div>
+    <p class="sub">Собирай слова из букв на поле.<br>Кто наберёт больше очков, тот победил.</p>
+
+    <div class="menu-card daily">
+      <h2>📅 Вызов дня · <span id="dDate"></span></h2>
+      <p>Сегодня у всех одно и то же поле. Сыграй уровень 5×5 против Знатока 🦊 и набери как можно больше очков.</p>
+      <div class="best"><span>Твой лучший результат сегодня:</span><b id="dBest">—</b></div>
+      <button class="btn gold" onclick="startDaily()">Принять вызов</button>
+    </div>
+
+    <div class="seg" role="tablist">
+      <button id="segV2" class="on" onclick="setMode('v2')">Битва 2.0</button>
+      <button id="segClassic" onclick="setMode('classic')">Классика</button>
+    </div>
+
+    <div class="menu-card">
+      <h2>Играть с ботом</h2>
+      <button class="btn bot-btn" onclick="startGame('bot',0)"><span class="em">🐣</span><span>Новичок<small>Короткие слова, иногда теряется</small></span><span class="stars">★<i>★★</i></span></button>
+      <button class="btn bot-btn" onclick="startGame('bot',1)"><span class="em">🦊</span><span>Знаток<small>Слова средней длины</small></span><span class="stars">★★<i>★</i></span></button>
+      <button class="btn bot-btn" onclick="startGame('bot',2)"><span class="em">🦉</span><span>Мастер<small>Самые длинные слова и хитрая тактика</small></span><span class="stars">★★★</span></button>
+    </div>
+
+    <div class="menu-card">
+      <h2>Вдвоём на одном телефоне</h2>
+      <button class="btn bot-btn" onclick="startGame('pvp')"><span class="em">👥</span><span>Игрок против игрока<small>Передавайте телефон по очереди</small></span></button>
+    </div>
+
+    <div class="menu-card" id="rulesV2">
+      <h2>Правила «Битвы 2.0»</h2>
+      <ul class="rules">
+        <li>3 уровня, на каждом новое поле 5×5. Время на ход: 30 с на 1-м уровне, 25 с на 2-м, 20 с на 3-м.</li>
+        <li>Составь слово и нажми «Готово»: его буквы окрасятся в твой цвет.</li>
+        <li>Окрашенные буквы не исчезают. Любой игрок может взять их снова и перекрасить в свой цвет.</li>
+        <li>1 буква = 1 очко. Одно и то же слово на уровне можно составить только один раз.</li>
+        <li>Уровень заканчивается, когда окрашены все 25 букв. Очки за все уровни складываются.</li>
+      </ul>
+      <button class="btn ghost learn" onclick="startTutorial()">🎓 Пройти обучение</button>
+    </div>
+    <div class="menu-card" id="rulesClassic" hidden>
+      <h2>Правила «Классики»</h2>
+      <ul class="rules">
+        <li>Поле 5×6, на ход 30 секунд.</li>
+        <li>Использованные клетки исчезают. 1 буква = 1 очко.</li>
+        <li>Слово — существительное от 2 до 10 букв. Одну клетку нельзя взять дважды.</li>
+        <li>Игра заканчивается, когда из оставшихся букв нельзя составить слово или оба игрока дважды подряд пропустили ход.</li>
+      </ul>
+      <button class="btn ghost learn" onclick="startTutorial()">🎓 Пройти обучение</button>
+    </div>
+    <div class="foot">Битва слов · версия 2.1</div>
+  </section>
+
+  <!-- GAME -->
+  <section class="screen" id="game">
+    <div class="top">
+      <div class="pl p0" id="pl0"><div class="nm" id="nm0">Ты</div><div class="sc" id="sc0">0</div></div>
+      <div class="pl p1" id="pl1"><div class="nm" id="nm1">Бот</div><div class="sc" id="sc1">0</div></div>
+      <button class="menu-x" id="bX" onclick="askQuit()" aria-label="Выйти">✕</button>
+    </div>
+    <div id="timeBox">
+      <div class="timer"><i id="tbar"></i></div>
+      <div class="tinfo"><span id="turnTxt">Ход: <b>Ты</b></span><span id="prog"></span><span>⏱ <b id="tsec">30</b> с</span></div>
+    </div>
+    <div class="word ph" id="word">Выбери буквы</div>
+    <div class="msg" id="msg"></div>
+    <div class="grid" id="grid"></div>
+    <div class="row" id="row1">
+      <button class="btn danger" id="bReset" onclick="resetSel()">Сброс</button>
+      <button class="btn" id="bBack" onclick="backSel()" aria-label="Стереть букву">⌫</button>
+      <button class="btn primary" id="bOk" onclick="submitWord()">Готово</button>
+    </div>
+    <div class="row" id="row2">
+      <button class="btn" id="bPass" onclick="humanPass()">Пропустить ход</button>
+      <button class="btn gold" id="bHint" onclick="useHint()">💡 Подсказка (3)</button>
+    </div>
+    <div class="log" id="log"></div>
+  </section>
+
+  <!-- LEVEL DONE -->
+  <section class="screen" id="levelScr">
+    <div class="res-em">🎨</div>
+    <div class="res-title" id="lvTitle">Уровень 1 пройден!</div>
+    <p class="sub" id="lvSub"></p>
+    <div class="res-score">
+      <div class="pl p0"><div class="nm" id="ln0"></div><div class="sc" id="lr0"></div><small id="lt0"></small></div>
+      <div class="pl p1"><div class="nm" id="ln1"></div><div class="sc" id="lr1"></div><small id="lt1"></small></div>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="bNextLv" onclick="startRound()">Уровень 2 →</button>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section class="screen" id="result">
+    <div class="res-em" id="resEm">🏆</div>
+    <div class="res-title" id="resTitle">Победа!</div>
+    <p class="sub" id="resSub"></p>
+    <div class="res-score">
+      <div class="pl p0"><div class="nm" id="rn0"></div><div class="sc" id="rs0"></div><div class="wl" id="rw0"></div></div>
+      <div class="pl p1"><div class="nm" id="rn1"></div><div class="sc" id="rs1"></div><div class="wl" id="rw1"></div></div>
+    </div>
+    <button class="btn gold" id="bSend" onclick="sendResult()" hidden>🏆 Отправить в рейтинг</button>
+    <div class="row">
+      <button class="btn primary" id="bAgain" onclick="playAgain()">Ещё раз</button>
+      <button class="btn" onclick="show('menu')">В меню</button>
+    </div>
+  </section>
+</div>
+
+<!-- первый запуск -->
+<div class="overlay" id="welcome"><div class="dlg">
+  <div class="big">👋</div>
+  <h3>Привет!</h3>
+  <p>Ты уже умеешь играть в «Битву слов»?</p>
+  <div class="col">
+    <button class="btn primary" onclick="welcomeAnswer(true)">Да, умею</button>
+    <button class="btn gold" onclick="welcomeAnswer(false)">Нет, научи меня</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="quitDlg"><div class="dlg"><p id="quitTxt">Выйти из игры в меню?</p>
+  <div class="row"><button class="btn" onclick="closeQuit()">Нет</button><button class="btn danger" onclick="quitGame()">Выйти</button></div></div></div>
+<div class="turnbanner" id="banner"></div>
+
+<div class="tut" id="tut">
+  <div class="spot" id="tutSpot"></div>
+  <div class="tip" id="tutTip">
+    <div class="stp" id="tutStp"></div>
+    <div class="tx" id="tutTx"></div>
+    <div class="row">
+      <button class="btn ghost" id="tutSkip" onclick="tutEnd()">Пропустить</button>
+      <button class="btn gold" id="tutNextB" onclick="tutNext()">Дальше</button>
+    </div>
+  </div>
+</div>
+
+<script src="dict.js"></script>
+<script>
+"use strict";
+// ---------- Telegram Mini App (если игра открыта внутри Telegram) ----------
+const TG = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.platform && window.Telegram.WebApp.platform !== 'unknown') ? window.Telegram.WebApp : null;
+function haptic(kind) {
+  if (!TG || !TG.HapticFeedback) return;
+  try { if (kind === 'tap') TG.HapticFeedback.selectionChanged(); else TG.HapticFeedback.notificationOccurred(kind); } catch (e) {}
+}
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+};
+
+// ---------- Словарь ----------
+const ALPH = 'абвгдежзийклмнопрстуфхцчшщъыьэюя';
+const IDX = {}; for (let i = 0; i < ALPH.length; i++) IDX[ALPH[i]] = i;
+const WORDS = window.DICT_RAW.split('\n');
+const WORDSET = new Set(WORDS);
+const CODES = WORDS.map(w => { const a = new Uint8Array(w.length); for (let i = 0; i < w.length; i++) a[i] = IDX[w[i]]; return a; });
+
+// частоты букв русского языка (для генерации поля)
+const FREQ = {о:10.97,е:8.45,а:8.01,и:7.35,н:6.7,т:6.26,с:5.47,р:4.73,в:4.54,л:4.4,к:3.49,м:3.21,д:2.98,п:2.81,у:2.62,я:2.01,ы:1.2,ь:1.3,г:1.7,з:1.65,б:1.59,ч:1.44,й:0.9,х:0.97,ж:0.94,ш:0.73,ю:0.5,ц:0.48,щ:0.3,э:0.3,ф:0.3};
+const VOWELS = new Set('аеиоуыэюя');
+const MAXLEN = 10;
+// «Битва 2.0» — 3 уровня на поле 5×5, буквы перекрашиваются; «Классика» — поле 5×6, буквы исчезают
+const MODES = {
+  v2:      { cells: 25, vowels: [9, 12],  levels: [30, 25, 20] },
+  classic: { cells: 30, vowels: [11, 14], levels: [30] },
+  daily:   { cells: 25, vowels: [9, 12],  levels: [30] },
+};
+let MODE = store.get('bitva_mode') === 'classic' ? 'classic' : 'v2';
+
+const tmp = new Int8Array(32);
+function canMake(c, cnt) {
+  let i = 0, ok = true;
+  for (; i < c.length; i++) { const k = c[i]; if (++tmp[k] > cnt[k]) { ok = false; i++; break; } }
+  for (let j = 0; j < i; j++) tmp[c[j]] = 0;
+  return ok;
+}
+// сколько букв слова попадёт на ещё не окрашенные клетки
+function cover(c, unc) {
+  let s = 0;
+  for (let i = 0; i < c.length; i++) { const k = c[i]; if (tmp[k] < unc[k]) { tmp[k]++; s++; } }
+  for (let i = 0; i < c.length; i++) tmp[c[i]] = 0;
+  return s;
+}
+function countsOf(cells) { const cnt = new Int8Array(32); for (const c of cells) if (!c.used) cnt[IDX[c.ch]]++; return cnt; }
+function uncolCounts(cells) { const cnt = new Int8Array(32); for (const c of cells) if (c.owner < 0) cnt[IDX[c.ch]]++; return cnt; }
+function possible(cnt, used) {
+  const res = [];
+  for (let i = 0; i < CODES.length; i++) if (CODES[i].length <= MAXLEN && canMake(CODES[i], cnt) && !used.has(WORDS[i])) res.push(i);
+  return res;
+}
+
+// ---------- Случайность (для «Вызова дня» — одинаковая у всех) ----------
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function prettyDate() { return new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }); }
+
+// ---------- Поле ----------
+function pickLetter(rng) {
+  let total = 0; for (const k in FREQ) total += FREQ[k];
+  let r = rng() * total;
+  for (const k in FREQ) { r -= FREQ[k]; if (r <= 0) return k; }
+  return 'о';
+}
+function genBoard(cfg, v2, rng) {
+  rng = rng || Math.random;
+  let best = null, bestN = -1;
+  for (let a = 0; a < 80; a++) {
+    const L = [], cnt = {};
+    while (L.length < cfg.cells) {
+      const ch = pickLetter(rng);
+      if ((cnt[ch] || 0) >= 3) continue;
+      cnt[ch] = (cnt[ch] || 0) + 1; L.push(ch);
+    }
+    const v = L.filter(c => VOWELS.has(c)).length;
+    if (v < cfg.vowels[0] || v > cfg.vowels[1]) continue;
+    const cells = L.map(ch => ({ ch, used: false, owner: -1 }));
+    const P = possible(countsOf(cells), new Set());
+    if (v2) {
+      // каждая буква поля должна входить хотя бы в 3 коротких слова — иначе её нельзя будет окрасить
+      const hits = new Int16Array(32);
+      for (const i of P) if (CODES[i].length <= 5) { const seen = new Set(CODES[i]); seen.forEach(k => hits[k]++); }
+      if (L.some(ch => hits[IDX[ch]] < 3)) continue;
+    }
+    if (P.length > bestN) { best = cells; bestN = P.length; }
+    if (P.length > 400) break;
+  }
+  return best || genBoard(cfg, v2, rng);
+}
+
+// ---------- Боты ----------
+const BOTS = [
+  { name: 'Новичок 🐣', maxLen: 4, passChance: 0.22, think: [2500, 5000] },
+  { name: 'Знаток 🦊',  maxLen: 7, passChance: 0.07, think: [2000, 4000] },
+  { name: 'Мастер 🦉',  maxLen: 10, passChance: 0,   think: [1500, 3000] },
+];
+function rnd(a, b) { return a + Math.random() * (b - a); }
+function pickRand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// focus = каждый 2-й ход бота в 2.0: он специально закрашивает неокрашенные буквы, чтобы уровень закончился быстрее
+function botChoose(level, focus) {
+  const bot = BOTS[level];
+  const cnt = countsOf(G.cells);
+  let cand = possible(cnt, G.usedWords).filter(i => WORDS[i].length <= bot.maxLen);
+  if (!cand.length) return null;
+  if (!focus && Math.random() < bot.passChance) return null;
+  return G.v2 ? botChooseV2(level, cand, focus) : botChooseClassic(level, cand, cnt);
+}
+
+function botChooseV2(level, cand, focus) {
+  const unc = uncolCounts(G.cells);
+  if (focus) {
+    const f = cand.map(i => ({ i, c: cover(CODES[i], unc) })).filter(x => x.c > 0);
+    if (f.length) {
+      f.sort((a, b) => b.c - a.c || CODES[b.i].length - CODES[a.i].length);
+      const topN = [5, 3, 1][level];
+      return WORDS[pickRand(f.slice(0, topN)).i];
+    }
+  }
+  if (level === 0) {
+    const fresh = cand.filter(i => cover(CODES[i], unc) > 0);
+    return WORDS[pickRand(fresh.length && Math.random() < 0.5 ? fresh : cand)];
+  }
+  const scored = cand.map(i => ({ i, s: CODES[i].length + 0.8 * cover(CODES[i], unc) + Math.random() * (level === 1 ? 1.5 : 0.3) }));
+  scored.sort((a, b) => b.s - a.s);
+  if (level === 1) return WORDS[pickRand(scored.slice(0, Math.max(1, Math.ceil(scored.length * 0.3)))).i];
+  return WORDS[scored[0].i];
+}
+
+function botChooseClassic(level, cand, cnt) {
+  if (level === 0) return WORDS[pickRand(cand)];
+  cand.sort((a, b) => WORDS[b].length - WORDS[a].length);
+  if (level === 1) return WORDS[pickRand(cand.slice(0, Math.max(1, Math.ceil(cand.length * 0.4))))];
+  // Мастер: среди 12 самых длинных выбирает то, после которого сопернику останется меньше всего
+  let bestW = null, bestScore = -1e9;
+  for (const i of cand.slice(0, 12)) {
+    const c2 = cnt.slice(); for (const k of CODES[i]) c2[k]--;
+    let oppBest = 0;
+    for (let j = 0; j < CODES.length; j++) {
+      const L = CODES[j].length;
+      if (L > oppBest && j !== i && canMake(CODES[j], c2) && !G.usedWords.has(WORDS[j])) oppBest = L;
+    }
+    const score = WORDS[i].length - 0.6 * oppBest + Math.random() * 0.3;
+    if (score > bestScore) { bestScore = score; bestW = WORDS[i]; }
+  }
+  return bestW;
+}
+
+// клетки под слово бота: сначала неокрашенные, потом цвета соперника
+function mapCells(w) {
+  const idxs = [];
+  for (const ch of w) {
+    let best = -1, bp = 9;
+    G.cells.forEach((c, i) => {
+      if (c.used || c.ch !== ch || idxs.includes(i)) return;
+      const p = c.owner < 0 ? 0 : c.owner !== G.cur ? 1 : 2;
+      if (p < bp) { bp = p; best = i; }
+    });
+    idxs.push(best);
+  }
+  return idxs;
+}
+
+// ---------- Состояние игры ----------
+let G = { mode: 'bot', level: 0, over: true };
+let timerId = null, botTimers = [];
+const $ = id => document.getElementById(id);
+
+function setMode(m) {
+  MODE = m;
+  $('segV2').classList.toggle('on', m === 'v2');
+  $('segClassic').classList.toggle('on', m === 'classic');
+  $('rulesV2').hidden = m !== 'v2';
+  $('rulesClassic').hidden = m === 'v2';
+  $('verTag').textContent = m === 'v2' ? 'РЕЖИМ 2.0' : 'КЛАССИКА';
+  store.set('bitva_mode', m);
+}
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+  if (id !== 'game') { stopAll(); tutHide(); }
+  if (id === 'menu') refreshDaily();
+  window.scrollTo(0, 0);
+  if (TG) { try { id === 'menu' ? TG.BackButton.hide() : TG.BackButton.show(); } catch (e) {} }
+}
+function stopAll() { clearInterval(timerId); timerId = null; botTimers.forEach(clearTimeout); botTimers = []; }
+function later(fn, ms) { botTimers.push(setTimeout(fn, ms)); }
+
+function makePlayers(mode, level) {
+  return mode === 'bot'
+    ? [{ name: 'Ты', score: 0, words: [], bot: false, hints: 3 }, { name: BOTS[level].name, score: 0, words: [], bot: true, hints: 0 }]
+    : [{ name: 'Игрок 1', score: 0, words: [], bot: false, hints: 3 }, { name: 'Игрок 2', score: 0, words: [], bot: false, hints: 3 }];
+}
+
+function startGame(mode, level, daily) {
+  stopAll();
+  const cfg = daily ? MODES.daily : MODES[MODE];
+  G = {
+    mode, level: level || 0, daily: !!daily, v2: daily || MODE === 'v2', cfg,
+    round: 0, rounds: cfg.levels.length, cells: [], sel: [],
+    players: makePlayers(mode, level || 0),
+    cur: 0, passes: 0, usedWords: new Set(), over: false, busy: false,
+  };
+  $('log').innerHTML = '';
+  startRound();
+}
+function startDaily() { startGame('bot', 1, true); }
+function playAgain() { G.daily ? startDaily() : startGame(G.mode, G.level); }
+
+function startRound() {
+  stopAll();
+  const rng = G.daily ? mulberry32(parseInt(today().replace(/-/g, ''), 10)) : Math.random;
+  G.cells = genBoard(G.cfg, G.v2, rng);
+  G.usedWords = new Set();
+  G.passes = 0; G.turns = 0; G.botMoves = 0; G.sel = [];
+  G.sec = G.cfg.levels[G.round];
+  G.cur = G.round % 2;          // уровни начинают по очереди
+  G.players.forEach(p => p.rscore = 0);
+  msg('');
+  buildGrid();
+  show('game');
+  if (G.daily) { addLog('<div class="lv">— Вызов дня · ' + prettyDate() + ' —</div>'); banner('📅 Вызов дня', 1300); }
+  else if (G.v2) {
+    addLog('<div class="lv">— Уровень ' + (G.round + 1) + ' из ' + G.rounds + ' (' + G.sec + ' с на ход) —</div>');
+    banner('Уровень ' + (G.round + 1) + ' из ' + G.rounds, 1300);
+  }
+  startTurn();
+}
+
+function buildGrid() {
+  const g = $('grid'); g.innerHTML = '';
+  G.cells.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'cell'; b.textContent = c.ch; b.onclick = () => tapCell(i);
+    c.el = b; g.appendChild(b);
+  });
+}
+
+function curP() { return G.players[G.cur]; }
+function isHumanTurn() { return !curP().bot && !G.over && !G.busy; }
+
+function render() {
+  for (let p = 0; p < 2; p++) {
+    $('nm' + p).textContent = G.players[p].name;
+    $('sc' + p).textContent = G.players[p].score;
+    $('pl' + p).classList.toggle('on', p === G.cur);
+  }
+  $('turnTxt').innerHTML = 'Ход: <b>' + curP().name + '</b>';
+  if (G.v2) {
+    const col = G.cells.filter(c => c.owner >= 0).length;
+    $('prog').innerHTML = (G.daily ? '📅' : 'Ур. <b>' + (G.round + 1) + '/' + G.rounds + '</b>') + ' · 🎨 <b>' + col + '/' + G.cells.length + '</b>';
+  } else {
+    $('prog').innerHTML = 'Букв: <b>' + G.cells.filter(c => !c.used).length + '</b>';
+  }
+  G.cells.forEach((c, i) => {
+    let cls = 'cell';
+    if (c.used) cls += ' used o' + c.owner;
+    else if (c.owner >= 0) cls += ' c' + c.owner;
+    if (G.sel.includes(i)) cls += ' sel';
+    else if (i === G.hintIdx) cls += ' hint';
+    c.el.className = cls;
+    c.el.disabled = c.used;
+  });
+  const w = G.sel.map(i => G.cells[i].ch).join('');
+  const we = $('word');
+  if (w) { we.textContent = w; we.classList.remove('ph'); }
+  else { we.textContent = curP().bot ? curP().name + ' думает…' : 'Выбери буквы'; we.classList.add('ph'); }
+  const h = isHumanTurn();
+  ['bReset', 'bBack', 'bOk', 'bPass'].forEach(id => $(id).disabled = !h);
+  $('bHint').disabled = !h || curP().hints <= 0;
+  $('bHint').textContent = '💡 Подсказка (' + (curP().bot ? 0 : curP().hints) + ')';
+}
+
+function msg(t, cls) { const m = $('msg'); m.textContent = t || ''; m.className = 'msg ' + (cls || ''); }
+function banner(t, ms) { const b = $('banner'); b.textContent = t; b.classList.add('on'); setTimeout(() => b.classList.remove('on'), ms || 900); }
+
+function startTurn() {
+  G.sel = []; G.busy = false; G.hintIdx = -1;
+  G.deadline = Date.now() + G.sec * 1000;
+  render();
+  clearInterval(timerId);
+  timerId = setInterval(tick, 100); tick();
+  if (G.mode === 'pvp') banner('Ход: ' + curP().name);
+  if (curP().bot) botTurn();
+}
+
+function tick() {
+  const left = Math.max(0, G.deadline - Date.now());
+  const frac = left / (G.sec * 1000);
+  const bar = $('tbar');
+  bar.style.width = (frac * 100) + '%';
+  bar.style.background = frac > 0.5 ? 'var(--ok)' : frac > 0.2 ? 'var(--gold)' : 'var(--bad)';
+  $('tsec').textContent = Math.ceil(left / 1000);
+  if (left <= 0 && !G.busy && !G.over) {
+    clearInterval(timerId);
+    msg('⏱ Время вышло!', 'bad');
+    doPass(curP().name + ': время вышло');
+  }
+}
+
+function tapCell(i) {
+  if (G.tut) return tutTap(i);
+  if (!isHumanTurn()) return;
+  const c = G.cells[i];
+  if (c.used) return;
+  const pos = G.sel.indexOf(i);
+  if (pos >= 0) { G.sel.splice(pos, 1); }
+  else {
+    if (G.sel.length >= MAXLEN) { msg('Не больше 10 букв', 'bad'); return; }
+    G.sel.push(i);
+  }
+  haptic('tap');
+  msg('');
+  render();
+}
+function resetSel() { if (G.tut || !isHumanTurn()) return; G.sel = []; msg(''); render(); }
+function backSel() { if (G.tut || !isHumanTurn()) return; G.sel.pop(); msg(''); render(); }
+
+function shake() { const w = $('word'); w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake'); haptic('error'); }
+
+function submitWord() {
+  if (G.tut) { if (G.tutAllow === 'ok') acceptWord('кот', G.sel.slice()); return; }
+  if (!isHumanTurn()) return;
+  const w = G.sel.map(i => G.cells[i].ch).join('');
+  if (w.length < 2) { msg('Слово должно быть не короче 2 букв', 'bad'); shake(); return; }
+  if (G.usedWords.has(w)) { msg('Слово «' + w + '» уже было', 'bad'); shake(); return; }
+  if (!WORDSET.has(w)) { msg('Слова «' + w + '» нет в словаре', 'bad'); shake(); return; }
+  acceptWord(w, G.sel.slice());
+}
+
+function acceptWord(w, idxs) {
+  const p = curP();
+  let fresh = 0;
+  idxs.forEach(i => {
+    const c = G.cells[i];
+    if (c.owner < 0) fresh++;
+    c.owner = G.cur;
+    if (!G.v2) c.used = true;
+  });
+  p.score += w.length; p.rscore += w.length; p.words.push(w);
+  G.usedWords.add(w); G.passes = 0;
+  addLog('<div class="w' + G.cur + '">' + p.name + ': <b>' + w.toUpperCase() + '</b> +' + w.length + '</div>');
+  let m = '«' + w.toUpperCase() + '» +' + w.length + ' ' + (w.length >= 6 ? '🔥' : '👍');
+  if (G.v2 && fresh) m += ' · новых букв: ' + fresh;
+  msg(m, 'ok');
+  if (!p.bot) haptic('success');
+  G.sel = []; G.busy = true; G.hintIdx = -1; clearInterval(timerId);
+  render();
+  idxs.forEach(i => G.cells[i].el.classList.add('pop'));
+  later(G.tut ? () => { G.busy = false; render(); tutNext(); } : nextTurn, 900);
+}
+
+function humanPass() { if (G.tut || !isHumanTurn()) return; doPass(curP().name + ' пропускает ход'); }
+function doPass(text) {
+  G.busy = true; G.sel = []; clearInterval(timerId);
+  G.passes++;
+  addLog('<div class="pass">' + text + '</div>');
+  render();
+  later(nextTurn, 900);
+}
+
+function nextTurn() {
+  if (G.over) return;
+  G.turns++;
+  const P = possible(countsOf(G.cells), G.usedWords);
+  if (G.v2) {
+    if (G.cells.every(c => c.owner >= 0)) return endRound('Все буквы окрашены!');
+    const unc = uncolCounts(G.cells);
+    if (!P.some(i => cover(CODES[i], unc) > 0)) return endRound('Оставшиеся буквы больше нельзя окрасить');
+    if (G.turns >= 60) return endRound('Достигнут лимит ходов на уровне');
+  } else if (!P.length) return endRound('Из оставшихся букв больше нельзя составить слово');
+  if (G.passes >= 4) return endRound('Оба игрока дважды подряд пропустили ход');
+  G.cur = 1 - G.cur;
+  msg('');
+  startTurn();
+}
+
+function addLog(html) { const l = $('log'); l.insertAdjacentHTML('afterbegin', html); }
+
+function botTurn() {
+  G.busy = true; render();
+  const bot = BOTS[G.level];
+  G.botMoves++;
+  const focus = G.v2 && G.botMoves % 2 === 0;
+  later(() => {
+    const w = botChoose(G.level, focus);
+    if (!w) { msg(curP().name + ' не нашёл слово', 'info'); doPass(curP().name + ' пропускает ход'); return; }
+    const idxs = mapCells(w);
+    idxs.forEach((ci, n) => later(() => { G.sel.push(ci); render(); }, 280 * (n + 1)));
+    later(() => acceptWord(w, idxs), 280 * (idxs.length + 1) + 350);
+  }, rnd(bot.think[0], bot.think[1]));
+}
+
+function useHint() {
+  if (G.tut || !isHumanTurn() || curP().hints <= 0) return;
+  let list = possible(countsOf(G.cells), G.usedWords);
+  if (G.v2) { const unc = uncolCounts(G.cells); const f = list.filter(i => cover(CODES[i], unc) > 0); if (f.length) list = f; }
+  const long = list.filter(i => WORDS[i].length >= 3);
+  if (long.length) list = long;
+  if (!list.length) return;
+  list.sort((a, b) => WORDS[b].length - WORDS[a].length);
+  const w = WORDS[pickRand(list.slice(0, Math.max(1, Math.ceil(list.length / 2))))];
+  curP().hints--;
+  G.hintIdx = G.cells.findIndex(c => !c.used && c.ch === w[0]);
+  render();
+  msg('💡 Есть слово на «' + w[0].toUpperCase() + '» из ' + w.length + ' букв', 'info');
+}
+
+function endRound(reason) {
+  stopAll();
+  G.busy = true;
+  if (G.round >= G.rounds - 1) return endGame(reason);
+  $('lvTitle').textContent = 'Уровень ' + (G.round + 1) + ' пройден!';
+  $('lvSub').textContent = reason;
+  for (let p = 0; p < 2; p++) {
+    const P = G.players[p];
+    $('ln' + p).textContent = P.name;
+    $('lr' + p).textContent = '+' + P.rscore;
+    $('lt' + p).textContent = 'всего: ' + P.score;
+  }
+  G.round++;
+  $('bNextLv').textContent = 'Уровень ' + (G.round + 1) + ' →';
+  setTimeout(() => show('levelScr'), 700);
+}
+
+function endGame(reason) {
+  G.over = true; stopAll();
+  const [a, b] = G.players;
+  let title, em;
+  if (a.score === b.score) { title = 'Ничья!'; em = '🤝'; }
+  else {
+    const win = a.score > b.score ? a : b;
+    if (G.mode === 'bot') { title = win === a ? 'Ты победил!' : 'Победил ' + b.name; em = win === a ? '🏆' : '😅'; }
+    else { title = 'Победил ' + win.name + '!'; em = '🏆'; }
+  }
+  let sub = reason;
+  if (G.daily) {
+    const key = 'bitva_daily_' + today();
+    const prev = parseInt(store.get(key) || '0', 10);
+    if (a.score > prev) { store.set(key, String(a.score)); sub += ' Новый рекорд дня: ' + a.score + '!'; }
+    else sub += ' Твой рекорд сегодня: ' + prev + '.';
+    title = 'Вызов дня: ' + a.score + ' очк.';
+    em = '📅';
+  } else if (G.v2) sub += ' Пройдено уровней: ' + G.rounds + '.';
+  $('resEm').textContent = em; $('resTitle').textContent = title; $('resSub').textContent = sub;
+  for (let p = 0; p < 2; p++) {
+    const P = G.players[p];
+    $('rn' + p).textContent = P.name; $('rs' + p).textContent = P.score;
+    $('rw' + p).textContent = P.words.length ? P.words.join(', ') : '—';
+  }
+  $('bSend').hidden = !(TG && G.mode === 'bot');
+  haptic(a.score >= b.score ? 'success' : 'warning');
+  setTimeout(() => show('result'), 700);
+}
+
+// отправка результата Telegram-боту (работает, когда игра открыта кнопкой «🎮 Играть» в боте)
+function sendResult() {
+  if (!TG) return;
+  const [a, b] = G.players;
+  const data = {
+    t: 'result', mode: G.daily ? 'daily' : (G.v2 ? 'v2' : 'classic'), bot: G.level,
+    score: a.score, opp: b.score, win: a.score > b.score ? 1 : a.score === b.score ? 0 : -1,
+    words: a.words.length, best: a.words.reduce((m, w) => w.length > m.length ? w : m, ''), date: today(),
+  };
+  try { TG.sendData(JSON.stringify(data)); } catch (e) { msg('Не удалось отправить', 'bad'); }
+}
+
+function askQuit() { $('quitTxt').textContent = G.tut ? 'Закончить обучение?' : 'Выйти из игры в меню?'; $('quitDlg').classList.add('on'); }
+function closeQuit() { $('quitDlg').classList.remove('on'); }
+function quitGame() { closeQuit(); G.over = true; G.tut = false; show('menu'); }
+
+// ---------- Первый запуск и обучение ----------
+function welcomeAnswer(knows) {
+  store.set('bitva_seen', '1');
+  $('welcome').classList.remove('on');
+  if (!knows) startTutorial();
+}
+
+// поле обучения: в середине спрятано слово КОТ (клетки 6, 7, 8)
+const TUT_LETTERS = 'ралиснкотемдубпягвеозаниш';
+const TUT_WORD = [6, 7, 8];
+const TUT = [
+  { t: 'Привет! Это <b>«Битва слов»</b>. За минуту покажу, как тут всё устроено.' },
+  { el: () => [$('pl0'), $('pl1')], t: 'Это <b>счёт</b>. Голубой цвет твой, оранжевый у соперника. Каждая буква в слове приносит <b>1 очко</b>.' },
+  { el: () => [$('timeBox')], t: '<b>Таймер</b>: на ход 30 секунд. Если не успел, ход перейдёт к сопернику. Здесь же видно номер уровня и сколько букв уже окрашено 🎨.' },
+  { el: () => [$('grid')], t: 'Это <b>поле 5×5</b>. Собирай из этих букв слова. Подходят существительные в начальной форме: <b>КОТ</b>, <b>ЛИСА</b>, <b>МОРЕ</b>.' },
+  { el: () => [$('grid')], wait: 'cells', t: 'Попробуй! Собери слово <b>КОТ</b>: нажимай на мигающие буквы по очереди.' },
+  { el: () => [$('word'), $('row1')], t: 'Собранное слово видно наверху. <b>⌫</b> убирает последнюю букву, <b>«Сброс»</b> убирает все.' },
+  { el: () => [$('bOk')], wait: 'ok', t: 'Теперь нажми <b>«Готово»</b>, чтобы отправить слово.' },
+  { el: () => [$('grid'), $('pl0')], t: 'Есть +3 очка! Буквы окрасились <b>в твой цвет</b>. Их можно брать снова, и соперник тоже может перекрасить их в свой цвет.' },
+  { el: () => [$('row2')], t: 'Не видишь слово? <b>Пропусти ход</b> или возьми <b>подсказку</b>: она покажет первую букву. Подсказок 3 на игру.' },
+  { el: () => [$('prog')], t: 'Уровень заканчивается, когда <b>окрашены все 25 букв</b>. Уровней 3, и время на ход с каждым уровнем меньше. Очки складываются, и кто набрал больше, тот победил!' },
+  { t: 'Вот и всё! 🎉 Начни с бота <b>Новичок 🐣</b>. Ещё есть «Вызов дня», режим «Классика» и игра вдвоём. Обучение можно пройти снова из меню.', last: true },
+];
+
+function startTutorial() {
+  stopAll();
+  G = {
+    mode: 'tut', level: 0, v2: true, cfg: MODES.v2, round: 0, rounds: 3, tut: true, tutI: 0, tutAllow: null,
+    players: [{ name: 'Ты', score: 0, rscore: 0, words: [], bot: false, hints: 3 }, { name: 'Соперник', score: 0, rscore: 0, words: [], bot: false, hints: 3 }],
+    cells: TUT_LETTERS.split('').map(ch => ({ ch, used: false, owner: -1 })),
+    sel: [], cur: 0, passes: 0, usedWords: new Set(), over: false, busy: false, sec: 30, hintIdx: -1,
+  };
+  $('log').innerHTML = '';
+  msg('');
+  buildGrid();
+  show('game');
+  $('tbar').style.width = '100%'; $('tbar').style.background = 'var(--ok)'; $('tsec').textContent = '30';
+  render();
+  $('tut').classList.add('on');
+  tutShow();
+}
+
+function tutShow() {
+  const st = TUT[G.tutI];
+  $('tutStp').textContent = 'Обучение · ' + (G.tutI + 1) + ' из ' + TUT.length;
+  $('tutTx').innerHTML = st.t;
+  $('tutNextB').hidden = !!st.wait;
+  $('tutNextB').textContent = st.last ? 'Играть!' : 'Дальше';
+  $('tutSkip').hidden = !!st.last;
+  G.tutAllow = st.wait || null;
+  G.hintIdx = st.wait === 'cells' ? TUT_WORD[G.sel.length] : -1;
+  render();
+  const els = st.el ? st.el() : [];
+  if (els.length) els[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+  setTimeout(tutPlace, els.length ? 380 : 0);
+  tutPlace();
+}
+
+function tutPlace() {
+  if (!G.tut) return;
+  const st = TUT[G.tutI], spot = $('tutSpot'), tip = $('tutTip');
+  const els = st.el ? st.el() : [];
+  const vw = window.innerWidth, vh = window.innerHeight;
+  if (!els.length) {
+    spot.classList.add('none');
+    Object.assign(spot.style, { left: vw / 2 + 'px', top: vh / 2 + 'px', width: '0px', height: '0px' });
+    tip.style.top = Math.max(16, vh / 2 - tip.offsetHeight / 2) + 'px';
+    return;
+  }
+  spot.classList.remove('none');
+  let l = 1e9, t = 1e9, r = -1e9, b = -1e9;
+  els.forEach(e => { const q = e.getBoundingClientRect(); l = Math.min(l, q.left); t = Math.min(t, q.top); r = Math.max(r, q.right); b = Math.max(b, q.bottom); });
+  const p = 6;
+  Object.assign(spot.style, { left: (l - p) + 'px', top: (t - p) + 'px', width: (r - l + 2 * p) + 'px', height: (b - t + 2 * p) + 'px' });
+  const th = tip.offsetHeight;
+  const below = (t + b) / 2 < vh / 2;
+  let top = below ? b + p + 14 : t - p - 14 - th;
+  if (top + th > vh - 10) top = vh - th - 10;
+  if (top < 10) top = 10;
+  tip.style.top = top + 'px';
+}
+
+function tutTap(i) {
+  if (G.tutAllow !== 'cells') return;
+  const need = TUT_WORD[G.sel.length];
+  if (i !== need) { msg('Нажми на мигающую букву 👆', 'info'); return; }
+  haptic('tap');
+  G.sel.push(i); msg('');
+  G.hintIdx = G.sel.length < TUT_WORD.length ? TUT_WORD[G.sel.length] : -1;
+  render();
+  if (G.sel.length === TUT_WORD.length) { G.tutAllow = null; setTimeout(tutNext, 450); }
+}
+
+function tutNext() {
+  if (!G.tut) return;
+  if (TUT[G.tutI].last) return tutEnd();
+  G.tutI++;
+  tutShow();
+}
+function tutHide() { $('tut').classList.remove('on'); }
+function tutEnd() { G.tut = false; G.over = true; tutHide(); show('menu'); }
+
+window.addEventListener('resize', () => { if (G.tut) tutPlace(); });
+window.addEventListener('scroll', () => { if (G.tut) tutPlace(); }, { passive: true });
+
+// ---------- Меню ----------
+function refreshDaily() {
+  $('dDate').textContent = prettyDate();
+  const b = store.get('bitva_daily_' + today());
+  $('dBest').textContent = b ? b + ' очк.' : 'ещё не играл';
+}
+
+// кнопка «Назад» на Android и в Telegram
+window.handleBack = function () {
+  if ($('welcome').classList.contains('on')) return true;
+  if ($('quitDlg').classList.contains('on')) { closeQuit(); return true; }
+  if ($('game').classList.contains('active') || $('levelScr').classList.contains('active')) { askQuit(); return true; }
+  if ($('result').classList.contains('active')) { show('menu'); return true; }
+  return false;
+};
+
+if (TG) {
+  try { TG.ready(); TG.expand(); } catch (e) {}
+  try { TG.setHeaderColor('#14162b'); TG.setBackgroundColor('#14162b'); } catch (e) {}
+  try { TG.disableVerticalSwipes(); } catch (e) {}
+  try { TG.BackButton.onClick(() => { if (!window.handleBack()) TG.close(); }); } catch (e) {}
+  const u = TG.initDataUnsafe && TG.initDataUnsafe.user;
+  if (u && u.first_name) MENU_GREETING = u.first_name;
+}
+var MENU_GREETING;
+
+setMode(MODE);
+refreshDaily();
+if (MENU_GREETING) document.querySelector('#welcome h3').textContent = 'Привет, ' + MENU_GREETING + '!';
+if (!store.get('bitva_seen')) $('welcome').classList.add('on');
+</script>
+</body>
+</html>
